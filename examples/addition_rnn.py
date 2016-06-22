@@ -88,79 +88,55 @@ BATCH_SIZE = 128
 LAYERS = 1
 MAXLEN = DIGITS + 1 + DIGITS
 
-path = './x'
-FIN = file(path, 'r')
-vocab_hash  =  {}
-questions = []
-anwsers = []
-num = 0
-for line in FIN.readlines():
-    line = line.strip()
-    arr = line.split("#_#")
-    if len(arr) < 2:
-        continue
-    question = arr[0]
-    anwser = arr[1]
-    arr = question.split(" ")
-    for i in range(0, len(arr)):
-        if(arr[i] == ""):
-            continue
-        if arr[i] not in vocab_hash:
-            vocab_hash[arr[i]] = num;
-            num = num + 1
-    questions.append(arr)
-    arr = anwser.split(" ")
-    for i in range(0, len(arr)):
-         if arr[i] not in vocab_hash:
-            vocab_hash[arr[i]] = num;
-            num = num + 1
-    anwsers.append(arr)
-
-#chars = '0123456789+ '
-chars = vocab_hash.keys()
-#for i in range(0, len(chars)):
-    #print("c = ", chars[i])
-#print("chars = ",chars)
+chars = '0123456789+ '
 ctable = CharacterTable(chars, MAXLEN)
-print ("len of chars = ", len(chars))
 
+questions = []
+expected = []
 seen = set()
 print('Generating data...')
-#while len(questions) < TRAINING_SIZE:
-print ("len of questions = ", len(questions))
-for i in range(0,len(questions)):
-    query = questions[i]
-    ans = anwsers[i]
-    #for i in range(0,len(query)):
-    #    print("word = ", query[i])
-    #print("query = ", query)
-    #print("anwser = ", ans)
+while len(questions) < TRAINING_SIZE:
+    f = lambda: int(''.join(np.random.choice(list('0123456789')) for i in range(np.random.randint(1, DIGITS + 1))))
+    a, b = f(), f()
+    # Skip any addition questions we've already seen
+    # Also skip any such that X+Y == Y+X (hence the sorting)
+    key = tuple(sorted((a, b)))
+    if key in seen:
+        continue
+    seen.add(key)
+    # Pad the data with spaces such that it is always MAXLEN
+    q = '{}+{}'.format(a, b)
+    query = q + ' ' * (MAXLEN - len(q))
+    ans = str(a + b)
+    # Answers can be of maximum size DIGITS + 1
+    ans += ' ' * (DIGITS + 1 - len(ans))
+    if INVERT:
+        query = query[::-1]
+    #print("type of query = ",type(query)) 		## str
+    #print("type of ans = ",type(ans))			## str
+    #print("query = ",query)
+    #print("ans = ",ans)
+    questions.append(query)
+    expected.append(ans)
 print('Total addition questions:', len(questions))
 
 print('Vectorization...')
 X = np.zeros((len(questions), MAXLEN, len(chars)), dtype=np.bool)
-y = np.zeros((len(questions), MAXLEN, len(chars)), dtype=np.bool)
-print("shape of X:", X.shape)
-print("shape of y:", y.shape)
+y = np.zeros((len(questions), DIGITS + 1, len(chars)), dtype=np.bool)
 ### SAM: X[i] and y[i] are both matrix, X[i] is the expresstion of the formular like : 43+234, and y[i] is the calculate outcome like : 234.
 for i, sentence in enumerate(questions):
-    #print("X:", sentence)
-    #print("len of sentence:", len(sentence))
+    #print("X:", sentence)							## 5+2
+    #print("type of X:", type(sentence))			## str
     X[i] = ctable.encode(sentence, maxlen=MAXLEN)
-    #for j in range(0,len(X[i])):
-    #    print("j = ", X[i][j])
-    #print("X:", X[i])
-for i, sentence in enumerate(anwsers):
-    #for l in range(0,len(sentence)):
-    #    print("word = ",sentence[l])
-    y[i] = ctable.encode(sentence, maxlen=MAXLEN)
-    #for j in range(0,len(y[i])):
-    #    print("j = ", y[i][j])
+for i, sentence in enumerate(expected):
+    #print("sentence = ",sentence)
+    y[i] = ctable.encode(sentence, maxlen=DIGITS + 1)
 # Shuffle (X, y) in unison as the later parts of X will almost all be larger digits
 indices = np.arange(len(y))
 np.random.shuffle(indices)
 X = X[indices]
 y = y[indices]
+
 
 # Explicitly set apart 10% for validation data that we never train over
 split_at = len(X) - len(X) / 10
@@ -198,6 +174,24 @@ for iteration in range(1, 200):
     print()
     print('-' * 50)
     print('Iteration', iteration)
+    '''
+    Show the content and format of X_train,y_train.
+	Both of X_train,y_train are 3d matrix, each sentence is expressed in a 2d matrix,
+		that each row of the 2d matrix express a word 1-of-K vector.
+		e.g.,
+		 X_train =  [[[ True False False ..., False False False]
+		              [ True False False ..., False False False]
+		              [ True False False ..., False False False]
+					  ...... ......
+					]] 
+		 y_train =  [[[ False False ..., False False False True]
+		              [ True False False ..., False False False]
+		              [ True False False ..., False False False]
+					  ...... ......
+					]] 
+    '''
+    #print("X_train = ",X_train)
+    #print("y_train = ",y_train)
     model.fit(X_train, y_train, batch_size=BATCH_SIZE, nb_epoch=1,
               validation_data=(X_val, y_val))
     print ("----------2")
