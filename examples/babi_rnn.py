@@ -123,7 +123,11 @@ def get_stories(f, only_supporting=False, max_length=None):
     data = [(flatten(story), q, answer) for story, q, answer in data if not max_length or len(flatten(story)) < max_length]
     return data
 
-
+'''
+SAM : Here to vectorize the X and Y.
+	  :Convert the text to a number vector, according to word_idx struct.
+	  :And make a padding operation to X,Y,Xq.
+'''
 def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
     X = []
     Xq = []
@@ -175,32 +179,41 @@ challenge = 'tasks_1-20_v1-2/en/qa2_two-supporting-facts_{}.txt'
 # QA2 with 10,000 samples
 # challenge = 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt'
 train = get_stories(tar.extractfile(challenge.format('train')))
-#print("train = ", train)
+''' train data is like : [story question anwser], and it is text expressing.'''
+#print("train = ", train) 
 test = get_stories(tar.extractfile(challenge.format('test')))
 
+''' vocab : all the words that both in train and test data.'''
 vocab = sorted(reduce(lambda x, y: x | y, (set(story + q + [answer]) for story, q, answer in train + test)))
 for i in range(0, len(vocab)):
     print("vocab= ", vocab[i])
 print ("len(vocab) = ", len(vocab))
 # Reserve 0 for masking via pad_sequences
 vocab_size = len(vocab) + 1
-word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
+word_idx = dict((c, i + 1) for i, c in enumerate(vocab))			## SAM : word_idx, index word to a number expression. It is good for calculating.
 story_maxlen = max(map(len, (x for x, _, _ in train + test)))
 query_maxlen = max(map(len, (x for _, x, _ in train + test)))
 
-X, Xq, Y = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)
+X, Xq, Y = vectorize_stories(train, word_idx, story_maxlen, query_maxlen)	## SAM : Vectorize the train data.
 for w in X:
     print ("xx = ", w)
-exit()
 print ("vocab_size = ", vocab_size)
 print ("X.shape = ", X.shape)
-tX, tXq, tY = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)
+tX, tXq, tY = vectorize_stories(test, word_idx, story_maxlen, query_maxlen)	## SAM : Vectorize the test data.
 
 print('vocab = {}'.format(vocab))
 print('X.shape = {}'.format(X.shape))
 print('Xq.shape = {}'.format(Xq.shape))
 print('Y.shape = {}'.format(Y.shape))
 print('story_maxlen, query_maxlen = {}, {}'.format(story_maxlen, query_maxlen))
+'''
+[E.G.,]
+vocab = [u'.', u'?', u'Daniel', u'John', u'Mary', u'Sandra', u'Where', u'apple', u'back', u'bathroom', u'bedroom', u'discarded', u'down', u'dropped', u'football', u'garden', u'got', u'grabbed', u'hallway', u'is', u'journeyed', u'kitchen', u'left', u'milk', u'moved', u'office', u'picked', u'put', u'the', u'there', u'to', u'took', u'travelled', u'up', u'went']
+X.shape = (1000, 552)
+Xq.shape = (1000, 5)
+Y.shape = (1000, 36)
+story_maxlen, query_maxlen = 552, 5
+'''
 
 print('Build model...')
 
@@ -225,8 +238,32 @@ model.add(Dense(vocab_size, activation='softmax'))
 model.compile(optimizer='adam',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
-
+'''
+Terminal, the train data is expressed as follows:
+X,Xq,Y are all 2d matrix.
+Each row is a sentence(story,question, or the answer), that as a vector.
+The number element of the vector is from word_idx.
+The '0' element in X and Y is because of padding operation.
+X =  [[ 0  0  0 ..., 29 16  1]
+      [ 0  0  0 ..., 24 30  1]
+      [ 0  0  0 ..., 29 22  1]
+       ...,
+	 ]
+Xq =  [[ 7 20 29 15  2]
+       [ 7 20 29 15  2]
+	   [ 7 20 29 15  2]
+	   ...,
+	  ] 
+Y =  [[ 0.  0.  0. ...,  0.  0.  0.]
+	  [ 0.  0.  0. ...,  0.  0.  0.]
+	  [ 0.  0.  0. ...,  0.  0.  0.]
+	  ..., 
+	 ] 
+'''
 print('Training')
+print("X = ", X)
+print("Xq = ", Xq)
+print("Y = ", Y)
 model.fit([X, Xq], Y, batch_size=BATCH_SIZE, nb_epoch=EPOCHS, validation_split=0.05)
 loss, acc = model.evaluate([tX, tXq], tY, batch_size=BATCH_SIZE)
 print('Test loss / test accuracy = {:.4f} / {:.4f}'.format(loss, acc))
