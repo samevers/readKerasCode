@@ -19,52 +19,42 @@ import numpy as np
 import random
 import sys
 
-path = './x'
-FIN = file(path, 'r')
-vocab_hash  =  {}
-questions = []
-anwsers = []
-num = 0
-for line in FIN.readlines():
-    line = line.strip()
-    arr = line.split("#_#")
-    if len(arr) < 2:
-        continue
-    question = arr[0]
-    anwser = arr[1]
-    arr = question.split(" ")
-    for i in range(0, len(arr)):
-        if(arr[i] == ""):
-            continue
-        if arr[i] not in vocab_hash:
-            vocab_hash[arr[i]] = num;
-            num = num + 1
-    questions.append(arr)
-    arr = anwser.split(" ")
-    for i in range(0, len(arr)):
-         if arr[i] not in vocab_hash:
-            vocab_hash[arr[i]] = num;
-            num = num + 1
-    anwsers.append(arr)
-#char_indices = dict((c, i) for i, c in enumerate(chars))
-char_indices = vocab_hash
-indices_char = dict((i, c) for i, c in vocab_hash.items())
+#path = get_file('nietzsche.txt', origin="https://s3.amazonaws.com/text-datasets/nietzsche.txt")
+path = './nietzsche.txt'
+text = open(path).read().lower()
+print('corpus length:', len(text))
+
+chars = set(text)
+#print("chars = ", chars)
+#### SAM: chars =  set(['\x86', '\n', '\r', '\xa9', '!', ' ', '"', '\xa4', "'", '\xa6', ')', '(', '\xab', '-', ',', '.', '1', '0', '3', '2', '5', '4', '7', '6', '9', '8', ';', ':', '=', '?', '\xc3', '[', ']', '_', 'a', 'c', 'b', 'e', 'd', 'g', 'f', 'i', 'h', 'k', 'j', 'm', 'l', 'o', 'n', 'q', 'p', 's', 'r', 'u', 't', 'w', 'v', 'y', 'x', 'z'])
+print('total chars:', len(chars))
+char_indices = dict((c, i) for i, c in enumerate(chars))
+indices_char = dict((i, c) for i, c in enumerate(chars))
 
 # cut the text in semi-redundant sequences of maxlen characters
 maxlen = 40
 step = 3
+sentences = []
+next_chars = []
+for i in range(0, len(text) - maxlen, step):
+    sentences.append(text[i: i + maxlen])
+    next_chars.append(text[i + maxlen])
+    #print("sentences = ",text[i : i+maxlen])
+    #print("next_chars = ",text[i+maxlen])
+	#### sentences =  , as plausible belief and ocular eviden
+	#### next_chars =  c
+print('nb sequences:', len(sentences))
 print('Vectorization...')
-X = np.zeros((len(questions), maxlen, len(vocab_hash)), dtype=np.bool)
-y = np.zeros((len(anwsers), len(vocab_hash)), dtype=np.bool)
-for i, sentence in enumerate(questions):
+X = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
+y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
+for i, sentence in enumerate(sentences):
     #print("i = ",i)						### the i'th sentence.
     #print("sentence = ",sentence)			### content of i'th sentence.
     for t, char in enumerate(sentence):
-        print("t = ",t)					### the t'th char of sentence.
-        print("char = ",char)				### content of t'th char.
-        X[i, t, vocab_hash[char]] = 1
+        #print("t = ",t)					### the t'th char of sentence.
+        #print("char = ",char)				### content of t'th char.
+        X[i, t, char_indices[char]] = 1
     y[i, char_indices[next_chars[i]]] = 1
-exit()
 
 # build the model: 2 stacked LSTM
 print('Build model...')
