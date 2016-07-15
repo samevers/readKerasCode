@@ -216,6 +216,14 @@ story_maxlen, query_maxlen = 552, 5
 '''
 
 print('Build model...')
+# row of X :  [ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 ....]
+#for l in range(0, len(X)):
+#    print('row of X : ' , X[l])
+
+# row of Y :  [ 0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  0.  1.  0.  0.  0.  0.  0.  0.  0.  0.  0.]
+#for l in range(0, len(Y)):
+#    print('row of Y : ' , Y[l])
+
 
 sentrnn = Sequential()
 sentrnn.add(Embedding(vocab_size, EMBED_HIDDEN_SIZE,
