@@ -64,20 +64,33 @@ nb_classes = 10
 nb_epoch = 40
 
 # the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = mnist.load_data()
-
-X_train = X_train.reshape(60000, 784)
+(X_train, y_train), (X_test, y_test) = mnist.load_data()	## The image is a matrix, that shape is = [28, 28]
+print('shape of X_train : ', len(X_train))
+print('shape of X_test : ', len(X_test))
+#for l in range(0,len(X_train)):
+#    print ('row of X_train : ', X_train[l])
+#exit()
+X_train = X_train.reshape(60000, 784)			## Reshape the image to be an array, that size is 784. i.e., 784 = 28 * 28, Means that the size of image is 28*28.
 X_test = X_test.reshape(10000, 784)
+print('reshape of X_train : ', len(X_train))
+print('reshape of X_test : ', len(X_test))
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
 X_train /= 255
 X_test /= 255
 print(X_train.shape[0], 'train samples')
 print(X_test.shape[0], 'test samples')
-
+#for l in range(0,len(X_train)):
+#    print ('row of X_train : ', X_train[l])
+#exit()
 # convert class vectors to binary class matrices
-Y_train = np_utils.to_categorical(y_train, nb_classes)
+Y_train = np_utils.to_categorical(y_train, nb_classes)	## Array, that implies which DIGIT the current image is. The array row of Y_train :  [ 0.  0.  0.  0.  0.  1.  0.  0.  0.  0.]
 Y_test = np_utils.to_categorical(y_test, nb_classes)
+print ("Y_train : ",Y_train)
+print ("Y_test : ",Y_test)
+for l in range(0,len(Y_train)):
+    print ('row of Y_train : ', Y_train[l])
+exit()
 
 # build the model
 model = Sequential()
